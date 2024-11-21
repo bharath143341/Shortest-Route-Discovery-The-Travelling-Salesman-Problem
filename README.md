@@ -6,7 +6,7 @@ AI-Final_Project
 
 ## Overview
 
-This project compares solutions to the Traveling Salesman Problem (TSP) using both Q-Learning and a Policy Gradient approach with a neural network. The Q-Learning algorithm is based on tabular Q-values, while the Policy Gradient approach utilizes a neural network to learn a policy.
+This project compares solutions to the Traveling Salesman Problem (TSP) using both Q-Learning and a Integrating A3c (Asynchronous Advantage Actor Critic) approach with a neural network. The Q-Learning algorithm is based on tabular Q-values, while the Policy Gradient approach utilizes a neural networks.
 
 ## Table of Contents
 
@@ -26,7 +26,8 @@ This project compares solutions to the Traveling Salesman Problem (TSP) using bo
 - Python (>=3.6)
 - NumPy
 - TensorFlow (for Q-Learning)
-- PyTorch (for Policy Gradient)
+- multiprocessing (for A3C)
+- PyTorch
 - Matplotlib
 
 ### Installation
