@@ -19,11 +19,11 @@ This project compares solutions to the Traveling Salesman Problem (TSP) using bo
 - Matplotlib
 
 
-  #### Q-Learning Parameters
+### Q-Learning Parameters
 
     num_cities, num_episodes, epsilon, alpha, gamma 
 
-  #### A3C Parameters
+### A3C Parameters
 
     num_cities, global_ep_max, gamma
 
