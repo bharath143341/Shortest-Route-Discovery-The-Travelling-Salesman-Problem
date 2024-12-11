@@ -3,14 +3,15 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.multiprocessing as mp
+import matplotlib.pyplot as plt
 
 # ============================
-# Common TSP Environment Class
+# TSP Environment
 # ============================
 class TSPEnvironment:
     def __init__(self, num_cities):
         self.num_cities = num_cities
-        self.cities = np.random.rand(num_cities, 2)  # Random city coordinates
+        self.cities = np.random.rand(num_cities, 2)  # Randomly generate city coordinates
         self.reset()
 
     def reset(self):
@@ -22,25 +23,23 @@ class TSPEnvironment:
 
     def step(self, current_city, action):
         distance = self.calculate_distance(current_city, action)
-        reward = -distance  # Negative distance as a reward to minimize travel
-        self.state[action] = 1  # Mark the city as visited
-        done = np.all(self.state)  # Check if all cities are visited
+        reward = -distance
+        self.state[action] = 1
+        done = np.all(self.state)
         return reward, action, done
 
 
-# =====================
-# Q-Learning Algorithm
-# =====================
+# ============================
+# Q-Learning Implementation
+# ============================
 def initialize_q_values(num_cities):
     return np.zeros((num_cities, num_cities))
 
 def select_action(q_values, state, epsilon):
     if np.random.rand() < epsilon:
-        # Explore
-        return np.random.choice(len(q_values[state]))
+        return np.random.choice(len(q_values[state]))  # Explore
     else:
-        # Exploit
-        return np.argmax(q_values[state])
+        return np.argmax(q_values[state])  # Exploit
 
 def update_q_values(q_values, state, action, next_state, reward, alpha, gamma):
     best_next_action = np.argmax(q_values[next_state])
@@ -51,21 +50,18 @@ def run_q_learning(env, num_cities, num_episodes, epsilon, alpha, gamma):
     losses = []
 
     for episode in range(num_episodes):
-        env.reset()
-        current_city = np.random.choice(num_cities)  # Start from a random city
+        state = np.random.choice(num_cities)
         total_distance = 0
 
         for _ in range(num_cities - 1):
-            action = select_action(q_values, current_city, epsilon)
-            reward, next_city, done = env.step(current_city, action)
-            total_distance += -reward  # Reward is negative distance
-            update_q_values(q_values, current_city, action, next_city, reward, alpha, gamma)
-            current_city = next_city
-            if done:
-                break
+            action = select_action(q_values, state, epsilon)
+            reward, next_state, done = env.step(state, action)
+            total_distance += -reward
+            update_q_values(q_values, state, action, next_state, reward, alpha, gamma)
+            state = next_state
 
         # Return to the starting city
-        total_distance += env.calculate_distance(current_city, 0)
+        total_distance += env.calculate_distance(state, 0)
         losses.append(total_distance)
         print(f"Q-Learning | Episode {episode + 1}, Total Distance: {total_distance:.4f}")
 
@@ -73,7 +69,7 @@ def run_q_learning(env, num_cities, num_episodes, epsilon, alpha, gamma):
 
 
 # ============================
-# A3C (Asynchronous A3C) Class
+# A3C Implementation
 # ============================
 class ActorCriticNetwork(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
@@ -88,19 +84,21 @@ class ActorCriticNetwork(nn.Module):
         value = self.value_layer(x)
         return policy, value
 
-
-def worker(global_model, optimizer, env, input_size, gamma, global_ep, global_ep_max, lock):
+def worker(global_model, optimizer, env, input_size, gamma, global_ep, global_ep_max, lock, rewards_list):
     local_model = ActorCriticNetwork(input_size, hidden_size=32, output_size=env.num_cities)
     local_model.load_state_dict(global_model.state_dict())
 
-    while global_ep.value < global_ep_max:
+    while True:
+        with lock:
+            if global_ep.value >= global_ep_max:
+                break
+            global_ep.value += 1
+            episode = global_ep.value
+
         state = env.reset()
-        log_probs = []
-        values = []
-        rewards = []
+        log_probs, values, rewards = [], [], []
         current_city = np.random.choice(env.num_cities)
-        total_reward = 0
-        done = False
+        total_reward, done = 0, False
 
         while not done:
             state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
@@ -114,7 +112,7 @@ def worker(global_model, optimizer, env, input_size, gamma, global_ep, global_ep
             total_reward += reward
             current_city = next_city
 
-        # Compute the returns and advantages
+        # Compute returns
         returns = []
         R = 0
         for r in reversed(rewards):
@@ -125,12 +123,11 @@ def worker(global_model, optimizer, env, input_size, gamma, global_ep, global_ep
         values = torch.cat(values)
         advantages = returns - values
 
-        # Compute loss
+        # Loss
         policy_loss = -(torch.stack(log_probs) * advantages.detach()).mean()
         value_loss = advantages.pow(2).mean()
         loss = policy_loss + value_loss
 
-        # Update global model
         optimizer.zero_grad()
         loss.backward()
         for global_param, local_param in zip(global_model.parameters(), local_model.parameters()):
@@ -138,12 +135,10 @@ def worker(global_model, optimizer, env, input_size, gamma, global_ep, global_ep
         optimizer.step()
         local_model.load_state_dict(global_model.state_dict())
 
-        # Update global episode counter
-        with lock:
-            global_ep.value += 1
+        # Append total reward to shared list
+        rewards_list.append(-total_reward)  # Negative because rewards are negative distances
 
-        print(f"A3C Worker {mp.current_process().name} | Episode {global_ep.value} | Reward: {total_reward:.2f}")
-
+        print(f"A3C Worker {mp.current_process().name} | Episode {episode} | Total Distance: {-total_reward:.2f}")
 
 def run_a3c(env, num_cities, global_ep_max, gamma):
     input_size = num_cities
@@ -153,10 +148,12 @@ def run_a3c(env, num_cities, global_ep_max, gamma):
 
     global_ep = mp.Value('i', 0)
     lock = mp.Lock()
+    manager = mp.Manager()
+    rewards_list = manager.list()
 
     processes = []
-    for rank in range(mp.cpu_count()):
-        p = mp.Process(target=worker, args=(global_model, optimizer, env, input_size, gamma, global_ep, global_ep_max, lock))
+    for _ in range(mp.cpu_count()):
+        p = mp.Process(target=worker, args=(global_model, optimizer, env, input_size, gamma, global_ep, global_ep_max, lock, rewards_list))
         p.start()
         processes.append(p)
 
@@ -164,6 +161,7 @@ def run_a3c(env, num_cities, global_ep_max, gamma):
         p.join()
 
     print("A3C Training Complete!")
+    return list(rewards_list)
 
 
 # ============================
@@ -171,19 +169,36 @@ def run_a3c(env, num_cities, global_ep_max, gamma):
 # ============================
 if __name__ == "__main__":
     num_cities = 20
-    num_episodes = 500
+    num_episodes = 100  # Adjust for faster output
     epsilon = 0.1
     alpha = 0.1
     gamma = 0.99
     global_ep_max = 100
 
-    # Create environment
     env = TSPEnvironment(num_cities)
 
     # Run Q-Learning
-    print("\nStarting Q-Learning...")
+    print("\nRunning Q-Learning...")
     q_losses = run_q_learning(env, num_cities, num_episodes, epsilon, alpha, gamma)
 
+    # Plot Q-Learning results
+    plt.figure(figsize=(10, 5))
+    plt.plot(q_losses, label="Q-Learning")
+    plt.xlabel("Episode")
+    plt.ylabel("Total Distance")
+    plt.title("Q-Learning Performance")
+    plt.legend()
+    plt.show()
+
     # Run A3C
-    print("\nStarting A3C...")
-    run_a3c(env, num_cities, global_ep_max, gamma)
+    print("\nRunning A3C...")
+    a3c_losses = run_a3c(env, num_cities, global_ep_max, gamma)
+
+    # Plot A3C results
+    plt.figure(figsize=(10, 5))
+    plt.plot(a3c_losses, label="A3C")
+    plt.xlabel("Episode")
+    plt.ylabel("Total Distance")
+    plt.title("A3C Performance")
+    plt.legend()
+    plt.show()
