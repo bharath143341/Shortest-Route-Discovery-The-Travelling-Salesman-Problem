@@ -85,7 +85,8 @@ class ActorCriticNetwork(nn.Module):
         return policy, value
 
 def worker(global_model, optimizer, env, input_size, gamma, global_ep, global_ep_max, lock, rewards_list):
-    local_model = ActorCriticNetwork(input_size, hidden_size=32, output_size=env.num_cities)
+    hidden_size = 32
+    local_model = ActorCriticNetwork(input_size, hidden_size, output_size=env.num_cities)
     local_model.load_state_dict(global_model.state_dict())
 
     while True:
@@ -142,7 +143,8 @@ def worker(global_model, optimizer, env, input_size, gamma, global_ep, global_ep
 
 def run_a3c(env, num_cities, global_ep_max, gamma):
     input_size = num_cities
-    global_model = ActorCriticNetwork(input_size, hidden_size=32, output_size=num_cities)
+    hidden_size = 32
+    global_model = ActorCriticNetwork(input_size, hidden_size, output_size=num_cities)
     global_model.share_memory()
     optimizer = optim.Adam(global_model.parameters(), lr=0.001)
 
@@ -152,17 +154,18 @@ def run_a3c(env, num_cities, global_ep_max, gamma):
     rewards_list = manager.list()
 
     processes = []
-    for _ in range(mp.cpu_count()):
+    num_processes = 4  # Reduce the number of parallel workers to conserve memory
+    for _ in range(num_processes):
         p = mp.Process(target=worker, args=(global_model, optimizer, env, input_size, gamma, global_ep, global_ep_max, lock, rewards_list))
         p.start()
         processes.append(p)
+
 
     for p in processes:
         p.join()
 
     print("A3C Training Complete!")
     return list(rewards_list)
-
 
 # ============================
 # Main Execution
