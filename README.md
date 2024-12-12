@@ -1,44 +1,80 @@
-# Shortest-Route-Discovery-The-Travelling-Salesman-Problem
-AI-Final_Project
-
-# RL-for-TSP
-
+# Shortest Route Discovery: The Travelling Salesman Problem
 
 ## Overview
+This project focuses on solving the **Travelling Salesman Problem (TSP)** using **Model-Free Reinforcement Learning (MFRL)** algorithms. TSP is a classic optimization problem where the objective is to find the shortest possible route that visits a set of cities exactly once and returns to the starting point.
 
-This project compares solutions to the Traveling Salesman Problem (TSP) using both Q-Learning and a Integrating A3c (Asynchronous Advantage Actor Critic) approach with a neural network. The Q-Learning algorithm is based on tabular Q-values, while the A3C approach utilizes a neural networks.
+### Team Members
+- **Sharath Chandra Kamuni**
+- **Kavya Rampalli**
+- **Bharath Sudha Chandra Bachala**
+
+**Under the Guidance of:** Prof. Shivanjali Khare
+
+---
+
+## Objective
+To solve TSP using Model-Free Reinforcement Learning (MFRL), which:
+- Utilizes experience to directly learn state-action values or policies.
+- Scales effectively and offers flexibility.
+- Employs a trial-and-error approach to find optimal policies without requiring an explicit world model.
+
+---
+
+## Methodology
+The solution involves two MFRL algorithms:
+
+### Q-Learning Algorithm
+- A value-based method that iteratively updates state-action values (Q-values) to find the optimal policy.
+- Relies on exploration and exploitation to balance learning.
+- Suitable for discrete action spaces.
+
+### A3C (Asynchronous Advantage Actor-Critic) Algorithm
+- A policy-based method that uses parallel agents to improve learning efficiency.
+- Combines value-based and policy-based approaches for better convergence.
+- Leverages an advantage function to reduce variance in policy updates.
+
+---
+
+## Problem Definition
+### Global Declarations:
+To define and solve the TSP, the following components are declared:
+- **Environment:** Defines the cities and distances between them.
+- **States:** Represent the current city and visited cities.
+- **Actions:** Choices of the next city to visit.
+- **Agent:** Learns the optimal route through experience.
+- **Value Function:** Quantifies the quality of a state or state-action pair.
+- **Reward:** Provides feedback on the quality of a chosen route.
+
+---
+
+## Outputs
+- Both Q-Learning and A3C algorithms demonstrate convergence.
+- **Q-Learning:** Shows lower initial loss, making it faster to stabilize in the early stages.
+- **A3C:** Benefits from parallelism, leading to faster overall convergence.
+
+---
+
+## Conclusion
+The project successfully solves the Travelling Salesman Problem using Model-Free Reinforcement Learning algorithms. While both Q-Learning and A3C converge, their performance varies based on initial conditions and computational resources.
+
+---
+
+## How to Run the Project
+1. **Clone the Repository:**
+   ```bash
+   git clone <repository_url>
+   ```
+2. **Install Dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. **Run the Code:**
+   ```bash
+   python TSP.py
+   ```
+
+---
 
 
-### Prerequisites
-
-- Python (>=3.6)
-- NumPy
-- TensorFlow (for Q-Learning)
-- multiprocessing (for A3C)
-- PyTorch
-- Matplotlib
-
-### play-around
-
-Change the parameters in the script and observe the graph.
-
-### Q-Learning Parameters
-
-    num_cities, num_episodes, epsilon, alpha, gamma 
-
-### A3C Parameters
-
-    num_cities, global_ep_max, gamma
-
-## Results
-
-View the results for loss over episdoes for Q-Learning and A3C Respectively.
-
-![Q-Learning](https://github.com/user-attachments/assets/52821b1f-145b-46b4-a916-e359a516c013)
-
-![A3C](https://github.com/user-attachments/assets/777dccbe-028c-4f15-b4b1-a6e17a122116)
-
-![ac](https://github.com/user-attachments/assets/92fe13a6-4bfe-4220-b865-b141d632baa7)
-
-
-
+## Acknowledgments
+Special thanks to Prof. Shivanjali Khare for her guidance throughout the project.
