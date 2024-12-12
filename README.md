@@ -32,6 +32,10 @@ Change the parameters in the script and observe the graph.
 
 ## Results
 
+![A3C](https://github.com/user-attachments/assets/2f2c2981-df92-4c49-8bd3-e82a380074e6)
+
+
+
 View the results for loss over episdoes for Q-Learning and A3C Respectively.
 
 
