@@ -62,7 +62,7 @@ The project successfully solves the Travelling Salesman Problem using Model-Free
 ## How to Run the Project
 1. **Clone the Repository:**
    ```bash
-   git clone <repository_url>
+   git clone https://github.com/your-username/Shortest-Route-Discovery-The-Travelling-Salesman-Problem.git
    ```
 2. **Install Dependencies:**
    ```bash
